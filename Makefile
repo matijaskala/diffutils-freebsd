@@ -1,4 +1,4 @@
-PROGS = cmp diff
+PROGS = cmp diff diff3 sdiff
 
 all: $(PROGS:%=build-%)
 
