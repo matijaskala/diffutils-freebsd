@@ -16,6 +16,7 @@ __FBSDID("$FreeBSD$");
 #include <errno.h>
 #include <paths.h>
 #include <signal.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,12 +40,14 @@ cleanup(const char *filename)
  * Returns -1 on error, or the exit value on success.
  */
 static int
-editit(const char *pathname)
+editit(char *pathname)
 {
+	extern char **environ;
 	sig_t sighup, sigint, sigquit, sigchld;
 	pid_t pid;
 	int saved_errno, st, ret = -1;
-	const char *ed;
+	char *ed;
+	char *argv[] = {ed, pathname, NULL};
 
 	ed = getenv("VISUAL");
 	if (ed == NULL)
@@ -56,12 +59,8 @@ editit(const char *pathname)
 	sigint = signal(SIGINT, SIG_IGN);
 	sigquit = signal(SIGQUIT, SIG_IGN);
 	sigchld = signal(SIGCHLD, SIG_DFL);
-	if ((pid = fork()) == -1)
+	if ((errno = posix_spawnp(&pid, ed, NULL, NULL, argv, environ)))
 		goto fail;
-	if (pid == 0) {
-		execlp(ed, ed, pathname, (char *)NULL);
-		_exit(127);
-	}
 	while (waitpid(pid, &st, 0) == -1)
 		if (errno != EINTR)
 			goto fail;

@@ -21,6 +21,7 @@ __FBSDID("$FreeBSD$");
 #include <getopt.h>
 #include <limits.h>
 #include <paths.h>
+#include <spawn.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -208,6 +209,7 @@ FAIL:
 int
 main(int argc, char **argv)
 {
+	extern char **environ;
 	FILE *diffpipe=NULL, *file1, *file2;
 	size_t diffargc = 0, wflag = WIDTH;
 	int ch, fd[2] = {-1}, status;
@@ -370,22 +372,14 @@ main(int argc, char **argv)
 	if (pipe(fd))
 		err(2, "pipe");
 
-	switch (pid = fork()) {
-	case 0:
-		/* child */
-		/* We don't read from the pipe. */
-		close(fd[0]);
-		if (dup2(fd[1], STDOUT_FILENO) == -1)
-			err(2, "child could not duplicate descriptor");
-		/* Free unused descriptor. */
-		close(fd[1]);
-		execvp(diffprog, diffargv);
-		err(2, "could not execute diff: %s", diffprog);
-		break;
-	case -1:
-		err(2, "could not fork");
-		break;
-	}
+	posix_spawn_file_actions_t file_actions;
+	if ((errno = posix_spawn_file_actions_init(&file_actions))
+	 || (errno = posix_spawn_file_actions_addclose(&file_actions, fd[0]))
+	 || (errno = posix_spawn_file_actions_adddup2(&file_actions, fd[1], STDOUT_FILENO))
+	 || (errno = posix_spawn_file_actions_addclose(&file_actions, fd[1]))
+	 || (errno = posix_spawnp(&pid, diffprog, &file_actions, NULL, diffargv, environ)))
+		err(2, "could not spawn diff: %s", diffprog);
+	posix_spawn_file_actions_destroy(&file_actions);
 
 	/* parent */
 	/* We don't write to the pipe. */

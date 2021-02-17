@@ -81,7 +81,9 @@ __FBSDID("$FreeBSD$");
 //#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <getopt.h>
+#include <spawn.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,19 +224,16 @@ readin(int fd, struct diff **dd)
 static void
 diffexec(const char *diffprog, char **diffargv, int fd[])
 {
-	switch (fork()) {
-	case 0:
-		close(fd[0]);
-		if (dup2(fd[1], STDOUT_FILENO) == -1)
-			err(2, "child could not duplicate descriptor");
-		close(fd[1]);
-		execvp(diffprog, diffargv);
-		err(2, "could not execute diff: %s", diffprog);
-		break;
-	case -1:
-		err(2, "could not fork");
-		break;
-	}
+	extern char **environ;
+	pid_t pid;
+	posix_spawn_file_actions_t file_actions;
+	if ((errno = posix_spawn_file_actions_init(&file_actions))
+	 || (errno = posix_spawn_file_actions_addclose(&file_actions, fd[0]))
+	 || (errno = posix_spawn_file_actions_adddup2(&file_actions, fd[1], STDOUT_FILENO))
+	 || (errno = posix_spawn_file_actions_addclose(&file_actions, fd[1]))
+	 || (errno = posix_spawnp(&pid, diffprog, &file_actions, NULL, diffargv, environ)))
+		err(2, "could not spawn diff: %s", diffprog);
+	posix_spawn_file_actions_destroy(&file_actions);
 	close(fd[1]);
 }
 
