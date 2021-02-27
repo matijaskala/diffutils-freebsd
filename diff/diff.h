@@ -28,7 +28,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *      @(#)diff.h      8.1 (Berkeley) 6/6/93
+ *	@(#)diff.h	8.1 (Berkeley) 6/6/93
  * $FreeBSD$
  */
 
@@ -44,10 +44,14 @@
 #define	D_CONTEXT	2	/* Diff with context */
 #define	D_UNIFIED	3	/* Unified context diff */
 #define	D_IFDEF		4	/* Diff with merged #ifdef's */
-#define D_NREVERSE      5       /* Reverse ed script with numbered
-                                   lines and no trailing . */
-#define D_BRIEF         6       /* Say if the files differ */
-#define D_GFORMAT       7       /* Diff with defined changed group format */
+#define	D_NREVERSE	5	/* Reverse ed script with numbered
+				   lines and no trailing . */
+#define	D_BRIEF		6	/* Say if the files differ */
+#define	D_GFORMAT	7	/* Diff with defined changed group format */
+#define D_SIDEBYSIDE    8	/* Side by side */
+
+#define	D_UNSET		-2
+
 
 /*
  * Output flags
@@ -59,15 +63,15 @@
 /*
  * Command line flags
  */
-#define D_FORCEASCII	0x008	/* Treat file as ascii regardless of content */
-#define D_FOLDBLANKS	0x010	/* Treat all white space as equal */
-#define D_MINIMAL	0x020	/* Make diff as small as possible */
-#define D_IGNORECASE	0x040	/* Case-insensitive matching */
-#define D_PROTOTYPE     0x080   /* Display C function prototype */
-#define D_EXPANDTABS    0x100   /* Expand tabs to spaces */
-#define D_IGNOREBLANKS  0x200   /* Ignore white space changes */
-#define D_STRIPCR               0x400   /* Strip trailing cr */
-#define D_SKIPBLANKLINES        0x800   /* Skip blank lines */
+#define D_FORCEASCII		0x008	/* Treat file as ascii regardless of content */
+#define D_FOLDBLANKS		0x010	/* Treat all white space as equal */
+#define D_MINIMAL		0x020	/* Make diff as small as possible */
+#define D_IGNORECASE		0x040	/* Case-insensitive matching */
+#define D_PROTOTYPE		0x080	/* Display C function prototype */
+#define D_EXPANDTABS		0x100	/* Expand tabs to spaces */
+#define D_IGNOREBLANKS		0x200	/* Ignore white space changes */
+#define D_STRIPCR		0x400	/* Strip trailing cr */
+#define D_SKIPBLANKLINES	0x800	/* Skip blank lines */
 
 /*
  * Status values for print_status() and diffreg() return values
@@ -79,26 +83,28 @@
 #define	D_MISMATCH2	4	/* path1 was a file, path2 a dir */
 #define	D_SKIPPED1	5	/* path1 was a special file */
 #define	D_SKIPPED2	6	/* path2 was a special file */
+#define	D_ERROR		7	/* A file access error occurred */
 
 struct excludes {
 	char *pattern;
-        struct excludes *next;
+	struct excludes *next;
 };
 
-extern int      Nflag, Pflag, rflag, sflag, Tflag, cflag;
-extern int      diff_format, diff_context, status, ignore_file_case;
-extern int      tabsize;
-extern char     *start, *ifdefname, *diffargs, *label[2], *ignore_pats;
-extern char     *group_format;
-extern struct   stat stb1, stb2;
-extern struct   excludes *excludes_list;
-extern regex_t  ignore_re;
+extern int	Nflag, Pflag, rflag, sflag, Tflag, cflag, Wflag;
+extern int	diff_format, diff_context, status, ignore_file_case;
+extern int	suppress_common;
+extern int	tabsize, width;
+extern char	*start, *ifdefname, *diffargs, *label[2], *ignore_pats;
+extern char	*group_format;
+extern struct	stat stb1, stb2;
+extern struct	excludes *excludes_list;
+extern regex_t	ignore_re;
 
-char    *ssplice(char *, char *);
-int     diffreg(char *, char *, int);
-int     easprintf(char **, const char *, ...);
-void    *emalloc(size_t);
-void    *erealloc(void *, size_t);
-void    diffdir(char *, char *, int);
-void    print_only(const char *, size_t, const char *);
-void    print_status(int, char *, char *, const char *);
+char	*ssplice(char *, char *);
+int	diffreg(char *, char *, int);
+int	easprintf(char **, const char *, ...);
+void	*emalloc(size_t);
+void	*erealloc(void *, size_t);
+void	diffdir(char *, char *, int);
+void	print_only(const char *, size_t, const char *);
+void	print_status(int, char *, char *, const char *);

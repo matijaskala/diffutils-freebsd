@@ -87,6 +87,7 @@ __FBSDID("$FreeBSD$");
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -135,7 +136,6 @@ static bool duplicate(struct range *, struct range *);
 static int edit(struct diff *, bool, int);
 static char *getchange(FILE *);
 static char *get_line(FILE *, size_t *);
-static int number(char **);
 static int readin(int fd, struct diff **);
 static int skip(int, int, const char *);
 static void change(int, struct range *, bool);
@@ -191,16 +191,16 @@ readin(int fd, struct diff **dd)
 	for (i=0; (p = getchange(f)); i++) {
 		if (i >= szchanges - 1)
 			increase();
-		a = b = number(&p);
+		a = b = (int)strtoimax(p, &p, 10);
 		if (*p == ',') {
 			p++;
-			b = number(&p);
+			b = (int)strtoimax(p, &p, 10);
 		}
 		kind = *p++;
-		c = d = number(&p);
+		c = d = (int)strtoimax(p, &p, 10);
 		if (*p==',') {
 			p++;
-			d = number(&p);
+			d = (int)strtoimax(p, &p, 10);
 		}
 		if (kind == 'a')
 			a++;
@@ -237,17 +237,6 @@ diffexec(const char *diffprog, char **diffargv, int fd[])
 	close(fd[1]);
 }
 
-static int
-number(char **lc)
-{
-	int nn;
-
-	nn = 0;
-	while (isdigit((unsigned char)(**lc)))
-		nn = nn*10 + *(*lc)++ - '0';
-	return (nn);
-}
-
 static char *
 getchange(FILE *b)
 {
@@ -264,28 +253,16 @@ getchange(FILE *b)
 static char *
 get_line(FILE *b, size_t *n)
 {
-	char *cp;
-	size_t len;
-	static char *buf;
-	static size_t bufsize;
+	ssize_t len;
+	static char *buf = NULL;
+	static size_t bufsize = 0;
 
-	if ((cp = fgetln(b, &len)) == NULL)
+	if ((len = getline(&buf, &bufsize, b)) < 0)
 		return (NULL);
 
-	if (cp[len - 1] != '\n')
-		len++;
-	if (len + 1 > bufsize) {
-		do {
-			bufsize += 1024;
-		} while (len + 1 > bufsize);
-		if ((buf = realloc(buf, bufsize)) == NULL)
-			err(EXIT_FAILURE, NULL);
-	}
-	memcpy(buf, cp, len - 1);
-	buf[len - 1] = '\n';
-	buf[len] = '\0';
 	if (n != NULL)
 		*n = len;
+
 	return (buf);
 }
 
@@ -605,7 +582,7 @@ main(int argc, char **argv)
 {
 	int ch, nblabels, m, n;
 	char *labels[] = { NULL, NULL, NULL };
-	const char *diffprog = DIFF_PATH;
+	char *diffprog = DIFF_PATH;
 	char *file1, *file2, *file3;
 	char *diffargv[6];
 	int diffargc = 0;
@@ -614,14 +591,14 @@ main(int argc, char **argv)
 	nblabels = 0;
 	eflag = 0;
 	oflag = 0;
-	diffargv[diffargc++] = (char *) diffprog;
+	diffargv[diffargc++] = diffprog;
 	while ((ch = getopt_long(argc, argv, OPTIONS, longopts, NULL)) != -1) {
 		switch (ch) {
 		case '3':
 			eflag = 2;
 			break;
 		case 'a':
-			diffargv[diffargc++] = (char *) "-a";
+			diffargv[diffargc++] = "-a";
 			break;
 		case 'A':
 			Aflag = 1;

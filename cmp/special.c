@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1991, 1993, 1994
- *      The Regents of the University of California.  All rights reserved.
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +31,7 @@
 
 #if 0
 #ifndef lint
-static char sccsid[] = "@(#)special.c   8.3 (Berkeley) 4/2/94";
+static char sccsid[] = "@(#)special.c	8.3 (Berkeley) 4/2/94";
 #endif
 #endif
 
@@ -41,6 +41,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/types.h>
 
 #include <err.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -52,12 +53,12 @@ c_special(int fd1, const char *file1, off_t skip1,
 {
 	int ch1, ch2;
 	off_t byte, line;
-        FILE *fp1, *fp2;
-        int dfound;
+	FILE *fp1, *fp2;
+	int dfound;
 
-        if ((fp1 = fdopen(fd1, "r")) == NULL)
-                err(ERR_EXIT, "%s", file1);
-        if ((fp2 = fdopen(fd2, "r")) == NULL)
+	if ((fp1 = fdopen(fd1, "r")) == NULL)
+		err(ERR_EXIT, "%s", file1);
+	if ((fp2 = fdopen(fd2, "r")) == NULL)
 		err(ERR_EXIT, "%s", file2);
 
 	dfound = 0;
@@ -73,18 +74,18 @@ c_special(int fd1, const char *file1, off_t skip1,
 		ch2 = getc(fp2);
 		if (ch1 == EOF || ch2 == EOF)
 			break;
-                if (ch1 != ch2) {
-                        if (xflag) {
-                                dfound = 1;
-                                (void)printf("%08llx %02x %02x\n",
-                                    (long long)byte - 1, ch1, ch2);
-                        } else if (lflag) {
-                                dfound = 1;
-                                (void)printf("%6lld %3o %3o\n",
-                                    (long long)byte, ch1, ch2);
-                        } else {
-                                diffmsg(file1, file2, byte, line);
-                                /* NOTREACHED */
+		if (ch1 != ch2) {
+			if (xflag) {
+				dfound = 1;
+				(void)printf("%08llx %02x %02x\n",
+				    (long long)byte - 1, ch1, ch2);
+			} else if (lflag) {
+				dfound = 1;
+				(void)printf("%6lld %3o %3o\n",
+				    (long long)byte, ch1, ch2);
+			} else {
+				diffmsg(file1, file2, byte, line);
+				/* NOTREACHED */
 			}
 		}
 		if (ch1 == '\n')
@@ -98,11 +99,11 @@ eof:	if (ferror(fp1))
 	if (feof(fp1)) {
 		if (!feof(fp2))
 			eofmsg(file1);
-        } else
-                if (feof(fp2))
-                        eofmsg(file2);
-        fclose(fp2);
-        fclose(fp1);
-        if (dfound)
-                exit(DIFF_EXIT);
+	} else
+		if (feof(fp2))
+			eofmsg(file2);
+	fclose(fp2);
+	fclose(fp1);
+	if (dfound)
+		exit(DIFF_EXIT);
 }

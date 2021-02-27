@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1991, 1993, 1994
- *      The Regents of the University of California.  All rights reserved.
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,7 +31,7 @@
 
 #if 0
 #ifndef lint
-static char sccsid[] = "@(#)regular.c   8.3 (Berkeley) 4/2/94";
+static char sccsid[] = "@(#)regular.c	8.3 (Berkeley) 4/2/94";
 #endif
 #endif
 
@@ -45,6 +45,7 @@ __FBSDID("$FreeBSD$");
 #include <err.h>
 #include <limits.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -61,32 +62,26 @@ void
 c_regular(int fd1, const char *file1, off_t skip1, off_t len1,
     int fd2, const char *file2, off_t skip2, off_t len2)
 {
-        u_char ch, *p1, *p2, *m1, *m2, *e1, *e2;
-        off_t byte, length, line;
-        int dfound;
-        off_t pagemask, off1, off2;
-        size_t pagesize;
-        struct sigaction act, oact;
+	struct sigaction act, oact;
+	u_char ch, *p1, *p2, *m1, *m2, *e1, *e2;
+	off_t byte, length, line;
+	off_t pagemask, off1, off2;
+	size_t pagesize;
+	int dfound;
 
-        if (skip1 > len1)
-                eofmsg(file1);
+	if (skip1 > len1)
+		eofmsg(file1);
 	len1 -= skip1;
 	if (skip2 > len2)
 		eofmsg(file2);
 	len2 -= skip2;
 
-        if (sflag && len1 != len2)
-                exit(DIFF_EXIT);
+	if (sflag && len1 != len2)
+		exit(DIFF_EXIT);
 
-        sigemptyset(&act.sa_mask);
-        act.sa_flags = SA_NODEFER;
-        act.sa_handler = segv_handler;
-        if (sigaction(SIGSEGV, &act, &oact))
-                err(ERR_EXIT, "sigaction()");
-
-        pagesize = getpagesize();
-        pagemask = (off_t)pagesize - 1;
-        off1 = ROUNDPAGE(skip1);
+	pagesize = getpagesize();
+	pagemask = (off_t)pagesize - 1;
+	off1 = ROUNDPAGE(skip1);
 	off2 = ROUNDPAGE(skip2);
 
 	length = MIN(len1, len2);
@@ -99,28 +94,34 @@ c_regular(int fd1, const char *file1, off_t skip1, off_t len1,
 	if ((m2 = remmap(NULL, fd2, off2)) == NULL) {
 		munmap(m1, MMAP_CHUNK);
 		c_special(fd1, file1, skip1, fd2, file2, skip2);
-                return;
-        }
+		return;
+	}
 
-        dfound = 0;
-        e1 = m1 + MMAP_CHUNK;
-        e2 = m2 + MMAP_CHUNK;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags = SA_NODEFER;
+	act.sa_handler = segv_handler;
+	if (sigaction(SIGSEGV, &act, &oact))
+		err(ERR_EXIT, "sigaction()");
+
+	dfound = 0;
+	e1 = m1 + MMAP_CHUNK;
+	e2 = m2 + MMAP_CHUNK;
 	p1 = m1 + (skip1 - off1);
 	p2 = m2 + (skip2 - off2);
 
 	for (byte = line = 1; length--; ++byte) {
-                if ((ch = *p1) != *p2) {
-                        if (xflag) {
-                                dfound = 1;
-                                (void)printf("%08llx %02x %02x\n",
-                                    (long long)byte - 1, ch, *p2);
-                        } else if (lflag) {
-                                dfound = 1;
-                                (void)printf("%6lld %3o %3o\n",
-                                    (long long)byte, ch, *p2);
-                        } else
-                                diffmsg(file1, file2, byte, line);
-                                /* NOTREACHED */
+		if ((ch = *p1) != *p2) {
+			if (xflag) {
+				dfound = 1;
+				(void)printf("%08llx %02x %02x\n",
+				    (long long)byte - 1, ch, *p2);
+			} else if (lflag) {
+				dfound = 1;
+				(void)printf("%6lld %3o %3o\n",
+				    (long long)byte, ch, *p2);
+			} else
+				diffmsg(file1, file2, byte, line);
+				/* NOTREACHED */
 		}
 		if (ch == '\n')
 			++line;

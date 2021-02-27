@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Copyright (c) 1987, 1990, 1993, 1994
- *      The Regents of the University of California.  All rights reserved.
+ *	The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,12 +32,12 @@
 #ifndef lint
 static const char copyright[] =
 "@(#) Copyright (c) 1987, 1990, 1993, 1994\n\
-        The Regents of the University of California.  All rights reserved.\n";
+	The Regents of the University of California.  All rights reserved.\n";
 #endif
 
 #if 0
 #ifndef lint
-static char sccsid[] = "@(#)cmp.c       8.3 (Berkeley) 4/2/94";
+static char sccsid[] = "@(#)cmp.c	8.3 (Berkeley) 4/2/94";
 #endif
 #endif
 
@@ -52,6 +52,7 @@ __FBSDID("$FreeBSD$");
 #include <fcntl.h>
 #include <getopt.h>
 #include <nl_types.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,45 +60,45 @@ __FBSDID("$FreeBSD$");
 
 #include "extern.h"
 
-int     lflag, sflag, xflag, zflag;
+bool	lflag, sflag, xflag, zflag;
 
 static const struct option long_opts[] =
 {
-        {"verbose",     no_argument,            NULL, 'l'},
-        {"silent",      no_argument,            NULL, 's'},
-        {"quiet",       no_argument,            NULL, 's'},
-        {NULL,          no_argument,            NULL, 0}
+	{"verbose",	no_argument,		NULL, 'l'},
+	{"silent",	no_argument,		NULL, 's'},
+	{"quiet",	no_argument,		NULL, 's'},
+	{NULL,		no_argument,		NULL, 0}
 };
 
-static void usage (void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-        struct stat sb1, sb2;
-        off_t skip1, skip2;
-	int ch, fd1, fd2, oflag, special;
-        const char *file1, *file2;
+	struct stat sb1, sb2;
+	off_t skip1, skip2;
+	int ch, fd1, fd2, oflag;
+	bool special;
+	const char *file1, *file2;
 
-        oflag = O_RDONLY;
-        while ((ch = getopt_long(argc, argv, "+hlsxz", long_opts, NULL)) != -1)
-                switch (ch) {
-                case 'h':               /* Don't follow symlinks */
-                        oflag |= O_NOFOLLOW;
+	oflag = O_RDONLY;
+	while ((ch = getopt_long(argc, argv, "+hlsxz", long_opts, NULL)) != -1)
+		switch (ch) {
+		case 'h':		/* Don't follow symlinks */
+			oflag |= O_NOFOLLOW;
 			break;
 		case 'l':		/* print all differences */
-			lflag = 1;
+			lflag = true;
 			break;
 		case 's':		/* silent run */
-			sflag = 1;
-			zflag = 1;
+			sflag = true;
 			break;
 		case 'x':		/* hex output */
-			lflag = 1;
-			xflag = 1;
+			lflag = true;
+			xflag = true;
 			break;
 		case 'z':		/* compare size first */
-			zflag = 1;
+			zflag = true;
 			break;
 		case '?':
 		default:
@@ -109,39 +110,40 @@ main(int argc, char *argv[])
 	if (lflag && sflag)
 		errx(ERR_EXIT, "specifying -s with -l or -x is not permitted");
 
-        if (argc < 2 || argc > 4)
-                usage();
+	if (argc < 2 || argc > 4)
+		usage();
 
-        /* Backward compatibility -- handle "-" meaning stdin. */
-        special = 0;
-        if (strcmp(file1 = argv[0], "-") == 0) {
-                special = 1;
-                fd1 = STDIN_FILENO;
-                file1 = "stdin";
-        }
-        else if ((fd1 = open(file1, oflag, 0)) < 0 && errno != EMLINK) {
-                if (!sflag)
-                        err(ERR_EXIT, "%s", file1);
-                else
+	/* Backward compatibility -- handle "-" meaning stdin. */
+	special = false;
+	if (strcmp(file1 = argv[0], "-") == 0) {
+		special = true;
+		fd1 = STDIN_FILENO;
+		file1 = "stdin";
+	} else if ((fd1 = open(file1, oflag, 0)) < 0 && errno != EMLINK) {
+		if (!sflag)
+			err(ERR_EXIT, "%s", file1);
+		else
 			exit(ERR_EXIT);
 	}
 	if (strcmp(file2 = argv[1], "-") == 0) {
 		if (special)
-                        errx(ERR_EXIT,
-                                "standard input may only be specified once");
-                special = 1;
-                fd2 = STDIN_FILENO;
-                file2 = "stdin";
-        }
-        else if ((fd2 = open(file2, oflag, 0)) < 0 && errno != EMLINK) {
-                if (!sflag)
-                        err(ERR_EXIT, "%s", file2);
-                else
+			errx(ERR_EXIT,
+				"standard input may only be specified once");
+		special = true;
+		fd2 = STDIN_FILENO;
+		file2 = "stdin";
+	} else if ((fd2 = open(file2, oflag, 0)) < 0 && errno != EMLINK) {
+		if (!sflag)
+			err(ERR_EXIT, "%s", file2);
+		else
 			exit(ERR_EXIT);
 	}
 
 	skip1 = argc > 2 ? strtol(argv[2], NULL, 0) : 0;
 	skip2 = argc == 4 ? strtol(argv[3], NULL, 0) : 0;
+
+	if (sflag && skip1 == 0 && skip2 == 0)
+		zflag = true;
 
 	if (fd1 == -1) {
 		if (fd2 == -1) {
@@ -155,18 +157,18 @@ main(int argc, char *argv[])
 		if (!sflag)
 			errx(ERR_EXIT, "%s: Not a symbolic link", file1);
 		else
-                        exit(ERR_EXIT);
-        }
+			exit(ERR_EXIT);
+	}
 
-        if (!special) {
-                if (fstat(fd1, &sb1)) {
-                        if (!sflag)
+	if (!special) {
+		if (fstat(fd1, &sb1)) {
+			if (!sflag)
 				err(ERR_EXIT, "%s", file1);
 			else
 				exit(ERR_EXIT);
 		}
 		if (!S_ISREG(sb1.st_mode))
-			special = 1;
+			special = true;
 		else {
 			if (fstat(fd2, &sb2)) {
 				if (!sflag)
@@ -175,7 +177,7 @@ main(int argc, char *argv[])
 					exit(ERR_EXIT);
 			}
 			if (!S_ISREG(sb2.st_mode))
-				special = 1;
+				special = true;
 		}
 	}
 
